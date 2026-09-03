@@ -7,6 +7,10 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "Sistema de Reservas - Core Service"
     API_V1_STR: str = "/api/v1"
+    # Configurações de autenticação JWT
+    SECRET_KEY: str = "dev-secret-key-change-in-production-2026"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Configurações do PostgreSQL
     POSTGRES_SERVER: str = "localhost"
