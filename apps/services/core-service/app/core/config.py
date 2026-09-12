@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # Configurações do usuário administrador inicial
+    ADMIN_NAME: str = "Administrador"
+    ADMIN_EMAIL: str = "admin@hotel.com"
+    ADMIN_PASSWORD: str
+
     # Configurações do PostgreSQL
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_USER: str = "postgres"
