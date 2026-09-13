@@ -1,9 +1,13 @@
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom"
-
+import ProtectedRoute from "./components/ProtectedRoute"
+import Admin from "./pages/Admin"
+import AdminRoute from "./components/AdminRoute"
 import Home from "./pages/Home"
 import Hoteis from "./pages/Hoteis"
 import Reservas from "./pages/Reservas"
 import Login from "./pages/Login"
+import LogoutButton from "./components/LogoutButton"
+
 
 function App() {
   return (
@@ -19,6 +23,7 @@ function App() {
             <Link className="nav-link" to="/hoteis">Hotéis</Link>
             <Link className="nav-link" to="/reservas">Minhas Reservas</Link>
             <Link className="nav-link" to="/login">Login</Link>
+            <LogoutButton />
           </div>
         </div>
       </nav>
@@ -26,8 +31,23 @@ function App() {
       <main className="container mt-4">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route
+  path="/admin"
+  element={
+    <AdminRoute>
+      <Admin />
+    </AdminRoute>
+  }
+/>
           <Route path="/hoteis" element={<Hoteis />} />
-          <Route path="/reservas" element={<Reservas />} />
+          <Route
+  path="/reservas"
+  element={
+    <ProtectedRoute>
+      <Reservas />
+    </ProtectedRoute>
+  }
+/>
           <Route path="/login" element={<Login />} />
         </Routes>
       </main>
