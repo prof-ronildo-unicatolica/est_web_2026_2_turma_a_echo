@@ -3,9 +3,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+
 from app.core.database import get_db
 from app.main import app
 from app.models.tutorial import Base
+from app.core.security import hash_password
+from app.models.usuario import Usuario
 
 # Banco SQLite em arquivo temporario para os testes
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
@@ -21,6 +24,26 @@ def db_session():
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
+        db.add(
+            Usuario(
+                nome="Cliente de Teste",
+                email="cliente@hotel.com",
+                senha_hash=hash_password("cliente123"),
+                is_admin=False,
+            )
+        )
+
+        db.add(
+            Usuario(
+                nome="Administrador de Teste",
+                email="admin@hotel.com",
+                senha_hash=hash_password("admin123"),
+                is_admin=True,
+            )
+        )
+
+        db.commit()
+
         yield db
     finally:
         db.close()
