@@ -62,12 +62,12 @@ def login(
 
 
 @router.get("/me", response_model=UsuarioPublic)
-def get_me(usuario_atual: dict = Depends(get_current_user)):
+def get_me(usuario_atual = Depends(get_current_user)):
     """Rota protegida: retorna o perfil do usuario autenticado."""
     return usuario_atual
 
 
 @router.get("/admin/verificacao")
-def somente_admin(admin: dict = Depends(get_current_admin)):
+def somente_admin(admin = Depends(get_current_admin)):
     """Rota administrativa de exemplo."""
-    return {"mensagem": f"Acesso administrativo concedido para {admin['nome']}"}
+    return {"mensagem": f"Acesso administrativo concedido para {admin.nome}"}
