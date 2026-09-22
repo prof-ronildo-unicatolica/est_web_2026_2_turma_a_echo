@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.tutorial import Base  # reutiliza Base definida em tutorial.py
@@ -27,5 +27,7 @@ class Hotel(Base):
     cidade_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("cidades.id", ondelete="CASCADE"), nullable=False
     )
+
+    estrelas: Mapped[int] = mapped_column(Integer, nullable=False)
 
     cidade: Mapped["Cidade"] = relationship("Cidade", back_populates="hoteis")
