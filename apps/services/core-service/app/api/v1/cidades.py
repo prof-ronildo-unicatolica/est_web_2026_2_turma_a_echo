@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.hotel import CidadeCreateSchema, CidadeResponseSchema
-from app.services.hotel_service import CidadeJaExisteError, CidadeService
+from app.services.cidade_service import CidadeJaExisteError, CidadeService
 
 router = APIRouter(prefix="/cidades", tags=["Cidades"])
 
