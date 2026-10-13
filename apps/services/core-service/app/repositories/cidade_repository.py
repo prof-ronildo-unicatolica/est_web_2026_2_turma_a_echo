@@ -1,22 +1,38 @@
 import uuid
 
+from sqlalchemy.orm import Session
 from app.models.hotel import Cidade
-from app.repositories.hotel_repository import (
-    CidadeRepository as HotelCidadeRepository,
-)
 
+class CidadeRepository:
+    def __init__(self, db: Session):
+        self.db = db
 
-class CidadeRepository(HotelCidadeRepository):
-    """Compatibilidade temporaria com o service antigo de Cidade."""
+    def create(self, nome: str) -> Cidade:
+        cidade = Cidade(nome=nome)
 
-    def listar(self) -> list[Cidade]:
-        return self.list()
+        self.db.add(cidade)
+        self.db.commit()
+        self.db.refresh(cidade)
 
-    def buscar_por_id(self, cidade_id: uuid.UUID) -> Cidade | None:
-        return self.get_by_id(cidade_id)
+        return cidade
 
-    def criar(self, nome: str) -> Cidade:
-        return self.create(nome)
+    def list(self) -> list[Cidade]:
+        return (
+            self.db.query(Cidade)
+            .order_by(Cidade.nome)
+            .all()
+        )
 
+    def get_by_id(self, cidade_id: uuid.UUID) -> Cidade | None:
+        return (
+            self.db.query(Cidade)
+            .filter(Cidade.id == cidade_id)
+            .first()
+        )
 
-__all__ = ["CidadeRepository"]
+    def get_by_nome(self, nome: str) -> Cidade | None:
+        return (
+            self.db.query(Cidade)
+            .filter(Cidade.nome == nome)
+            .first()
+        )

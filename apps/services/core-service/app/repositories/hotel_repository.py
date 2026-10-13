@@ -2,39 +2,39 @@ import uuid
 
 from sqlalchemy.orm import Session
 
-from app.models.hotel import Cidade
+from app.models.hotel import Hotel
 
-
-class CidadeRepository:
+class HotelRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, nome: str) -> Cidade:
-        cidade = Cidade(nome=nome)
-
-        self.db.add(cidade)
+    def create(self, hotel: Hotel) -> Hotel:
+        self.db.add(hotel)
         self.db.commit()
-        self.db.refresh(cidade)
+        self.db.refresh(hotel)
 
-        return cidade
+        return hotel
 
-    def list(self) -> list[Cidade]:
+    def list(self) -> list[Hotel]:
         return (
-            self.db.query(Cidade)
-            .order_by(Cidade.nome)
+            self.db.query(Hotel)
+            .order_by(Hotel.nome)
             .all()
         )
 
-    def get_by_id(self, cidade_id: uuid.UUID) -> Cidade | None:
+    def get_by_id(self, hotel_id: uuid.UUID) -> Hotel | None:
         return (
-            self.db.query(Cidade)
-            .filter(Cidade.id == cidade_id)
+            self.db.query(Hotel)
+            .filter(Hotel.id == hotel_id)
             .first()
         )
 
-    def get_by_nome(self, nome: str) -> Cidade | None:
-        return (
-            self.db.query(Cidade)
-            .filter(Cidade.nome == nome)
-            .first()
-        )
+    def update(self, hotel: Hotel) -> Hotel:
+        self.db.commit()
+        self.db.refresh(hotel)
+
+        return hotel
+
+    def delete(self, hotel: Hotel) -> None:
+        self.db.delete(hotel)
+        self.db.commit()

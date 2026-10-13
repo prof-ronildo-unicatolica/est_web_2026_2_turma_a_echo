@@ -2,15 +2,16 @@ import uuid
 
 from sqlalchemy.orm import Session
 
-from app.models.hotel import Cidade
-from app.repositories.hotel_repository import CidadeRepository
+from app.models.hotel import Hotel
+from app.repositories.cidade_repository import CidadeRepository
+from app.repositories.hotel_repository import HotelRepository
 
 
 class RegraDeNegocioError(Exception):
     """Base das excecoes de negocio deste modulo."""
 
 
-class CidadeJaExisteError(RegraDeNegocioError):
+class HotelNaoEncontradoError(RegraDeNegocioError):
     pass
 
 
@@ -18,22 +19,74 @@ class CidadeNaoEncontradaError(RegraDeNegocioError):
     pass
 
 
-class CidadeService:
+class HotelService:
     def __init__(self, db: Session):
-        self.repository = CidadeRepository(db)
+        self.repository = HotelRepository(db)
+        self.cidade_repository = CidadeRepository(db)
 
-    def criar(self, nome: str) -> Cidade:
+    def criar(
+        self,
+        nome: str,
+        cidade_id: uuid.UUID,
+        estrelas: int,
+    ) -> Hotel:
         nome = nome.strip()
 
-        if self.repository.get_by_nome(nome):
-            raise CidadeJaExisteError(
-                f"Ja existe uma cidade chamada '{nome}'."
+        cidade = self.cidade_repository.get_by_id(cidade_id)
+
+        if cidade is None:
+            raise CidadeNaoEncontradaError(
+                f"Cidade com id '{cidade_id}' não encontrada."
             )
 
-        return self.repository.create(nome=nome)
+        hotel = Hotel(
+            nome=nome,
+            cidade_id=cidade_id,
+            estrelas=estrelas,
+        )
 
-    def listar(self) -> list[Cidade]:
+        return self.repository.create(hotel)
+
+    def listar(self) -> list[Hotel]:
         return self.repository.list()
 
-    def buscar_por_id(self, cidade_id: uuid.UUID) -> Cidade | None:
-        return self.repository.get_by_id(cidade_id)
+    def buscar_por_id(self, hotel_id: uuid.UUID) -> Hotel:
+        hotel = self.repository.get_by_id(hotel_id)
+
+        if hotel is None:
+            raise HotelNaoEncontradoError(
+                f"Hotel com id '{hotel_id}' não encontrado."
+            )
+
+        return hotel
+
+    def atualizar(
+        self,
+        hotel_id: uuid.UUID,
+        nome: str | None = None,
+        cidade_id: uuid.UUID | None = None,
+        estrelas: int | None = None,
+    ) -> Hotel:
+        hotel = self.buscar_por_id(hotel_id)
+
+        if nome is not None:
+            hotel.nome = nome.strip()
+
+        if cidade_id is not None:
+            cidade = self.cidade_repository.get_by_id(cidade_id)
+
+            if cidade is None:
+                raise CidadeNaoEncontradaError(
+                    f"Cidade com id '{cidade_id}' não encontrada."
+                )
+
+            hotel.cidade_id = cidade_id
+
+        if estrelas is not None:
+            hotel.estrelas = estrelas
+
+        return self.repository.update(hotel)
+
+    def excluir(self, hotel_id: uuid.UUID) -> None:
+        hotel = self.buscar_por_id(hotel_id)
+        self.repository.delete(hotel)
