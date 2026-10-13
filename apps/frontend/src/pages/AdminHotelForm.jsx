@@ -1,15 +1,30 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { apiGet } from "../services/api"
 
 export default function AdminHotelForm() {
   const [nome, setNome] = useState("")
-  const [cidade, setCidade] = useState("")
+  const [cidadeId, setCidadeId] = useState("")
+  const [cidades, setCidades] = useState([])
+
+  useEffect(() => {
+    async function carregarCidades() {
+      try {
+        const dados = await apiGet("/cidades")
+        setCidades(dados)
+      } catch (error) {
+        console.error("Erro ao carregar cidades:", error)
+      }
+    }
+
+    carregarCidades()
+  }, [])
 
   function handleSubmit(event) {
     event.preventDefault()
 
     console.log({
       nome,
-      cidade,
+      cidade_id: cidadeId,
     })
   }
 
@@ -19,7 +34,9 @@ export default function AdminHotelForm() {
 
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
-          <label className="form-label">Nome do hotel</label>
+          <label className="form-label">
+            Nome do hotel
+          </label>
 
           <input
             type="text"
@@ -32,20 +49,35 @@ export default function AdminHotelForm() {
         </div>
 
         <div className="mb-3">
-          <label className="form-label">Cidade</label>
+          <label className="form-label">
+            Cidade
+          </label>
 
           <select
             className="form-select"
-            value={cidade}
-            onChange={(e) => setCidade(e.target.value)}
+            value={cidadeId}
+            onChange={(e) => setCidadeId(e.target.value)}
             required
           >
-            <option value="">Selecione uma cidade</option>
-            <option value="1">Cidade de teste</option>
+            <option value="">
+              Selecione uma cidade
+            </option>
+
+            {cidades.map((cidade) => (
+              <option
+                key={cidade.id}
+                value={cidade.id}
+              >
+                {cidade.nome}
+              </option>
+            ))}
           </select>
         </div>
 
-        <button type="submit" className="btn btn-primary">
+        <button
+          type="submit"
+          className="btn btn-primary"
+        >
           Salvar
         </button>
       </form>
