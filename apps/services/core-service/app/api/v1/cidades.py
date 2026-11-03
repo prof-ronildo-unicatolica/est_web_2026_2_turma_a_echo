@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import Annotated
 
 from app.core.database import get_db
 from app.schemas.hotel import CidadeCreateSchema, CidadeResponseSchema
 from app.services.cidade_service import CidadeJaExisteError, CidadeService
 
 router = APIRouter(prefix="/cidades", tags=["Cidades"])
+SessaoDep = Annotated[Session, Depends(get_db)]
 
 
 @router.post(
@@ -16,7 +18,7 @@ router = APIRouter(prefix="/cidades", tags=["Cidades"])
 )
 def criar_cidade(
     payload: CidadeCreateSchema,
-    db: Session = Depends(get_db),
+    db: SessaoDep,
 ):
     service = CidadeService(db)
 
@@ -34,5 +36,5 @@ def criar_cidade(
     response_model=list[CidadeResponseSchema],
     summary="Lista as cidades",
 )
-def listar_cidades(db: Session = Depends(get_db)):
+def listar_cidades(db: SessaoDep):
     return CidadeService(db).listar()
