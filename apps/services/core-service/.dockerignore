@@ -7,3 +7,10 @@ __pycache__
 .pytest_cache
 .ruff_cache
 test.db
+
+# Arquivos com variaveis de ambiente e segredos
+.env
+.env.*
+
+# Dependencias locais que nao devem entrar na imagem
+node_modules

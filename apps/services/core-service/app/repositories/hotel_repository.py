@@ -1,8 +1,10 @@
 import uuid
+from typing import List
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.hotel import Hotel
+
 
 class HotelRepository:
     def __init__(self, db: Session):
@@ -15,9 +17,19 @@ class HotelRepository:
 
         return hotel
 
-    def list(self) -> list[Hotel]:
+    def list(self) -> List[Hotel]:
         return (
             self.db.query(Hotel)
+            .options(joinedload(Hotel.cidade))
+            .order_by(Hotel.nome)
+            .all()
+        )
+
+    def list_by_cidade(self, cidade_id: uuid.UUID) -> List[Hotel]:
+        return (
+            self.db.query(Hotel)
+            .options(joinedload(Hotel.cidade))
+            .filter(Hotel.cidade_id == cidade_id)
             .order_by(Hotel.nome)
             .all()
         )
@@ -25,6 +37,7 @@ class HotelRepository:
     def get_by_id(self, hotel_id: uuid.UUID) -> Hotel | None:
         return (
             self.db.query(Hotel)
+            .options(joinedload(Hotel.cidade))
             .filter(Hotel.id == hotel_id)
             .first()
         )
