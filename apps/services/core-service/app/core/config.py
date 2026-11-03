@@ -7,33 +7,37 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "Sistema de Reservas - Core Service"
     API_V1_STR: str = "/api/v1"
-    # Configurações de autenticação JWT
-    SECRET_KEY: str = "dev-secret-key-change-in-production-2026"
+
+    # Configuracoes de autenticacao JWT
+    SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # Configurações do usuário administrador inicial
+    # Configuracoes do usuario administrador inicial
     ADMIN_NAME: str = "Administrador"
     ADMIN_EMAIL: str = "admin@hotel.com"
     ADMIN_PASSWORD: str
 
-    # Configurações do PostgreSQL
+    # Configuracoes do PostgreSQL
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_PASSWORD: str
     POSTGRES_DB: str = "hotel_db_dev"
     POSTGRES_PORT: str = "5432"
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return (
+            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
 
-    # Configurações do MongoDB
-    MONGODB_URL: str = "mongodb://admin:admin123@localhost:27017"
+    # Configuracoes do MongoDB
+    MONGODB_URL: str
     MONGODB_DB: str = "hotel_mongo_dev"
 
-    # Configurações do RabbitMQ
-    RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
+    # Configuracoes do RabbitMQ
+    RABBITMQ_URL: str
 
 
 settings = Settings()
