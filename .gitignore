@@ -29,6 +29,9 @@ pnpm-debug.log*
 .env
 .env.*
 
+# Permite versionar somente o arquivo de exemplo
+!.env.exemplo
+
 # OS files
 .DS_Store
 Thumbs.db
