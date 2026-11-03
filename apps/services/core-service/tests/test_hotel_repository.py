@@ -1,5 +1,5 @@
 from app.models.hotel import Cidade
-from app.repositories.hotel_repository import CidadeRepository
+from app.repositories.cidade_repository import CidadeRepository
 
 
 def test_listar_cidades_em_ordem_alfabetica(db_session):

@@ -1,6 +1,6 @@
 import pytest
 
-from app.services.hotel_service import (
+from app.services.cidade_service import (
     CidadeJaExisteError,
     CidadeService,
 )
