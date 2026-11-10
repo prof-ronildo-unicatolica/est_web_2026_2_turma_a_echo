@@ -2,6 +2,10 @@ import uuid
 
 import pytest
 
+from app.services.hotel_service import (
+    CidadeNaoEncontradaError,
+    HotelNaoEncontradoError,
+    HotelService,
 from app.services.cidade_service import (
     CidadeJaExisteError,
     CidadeService,
