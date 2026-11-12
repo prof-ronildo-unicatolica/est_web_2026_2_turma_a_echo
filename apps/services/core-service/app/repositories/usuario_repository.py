@@ -8,11 +8,7 @@ class UsuarioRepository:
         self.db = db
 
     def get_by_email(self, email: str) -> Usuario | None:
-        return (
-            self.db.query(Usuario)
-            .filter(Usuario.email == email)
-            .first()
-        )
+        return self.db.query(Usuario).filter(Usuario.email == email).first()
 
     def email_exists(self, email: str) -> bool:
         return self.get_by_email(email) is not None

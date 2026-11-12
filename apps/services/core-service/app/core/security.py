@@ -29,9 +29,7 @@ def create_access_token(
 ) -> str:
     """Cria um token JWT com identificação do usuário e expiração."""
     if expires_delta is None:
-        expires_delta = timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     expire = datetime.now(timezone.utc) + expires_delta
 

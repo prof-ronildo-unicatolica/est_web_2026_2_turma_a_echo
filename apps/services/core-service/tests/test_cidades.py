@@ -16,11 +16,7 @@ def test_criar_cidade_retorna_201(client, db_session):
     assert body["id"]
     assert body["nome"] == "Sobral"
 
-    cidade = (
-        db_session.query(Cidade)
-        .filter(Cidade.nome == "Sobral")
-        .first()
-    )
+    cidade = db_session.query(Cidade).filter(Cidade.nome == "Sobral").first()
 
     assert cidade is not None
 
