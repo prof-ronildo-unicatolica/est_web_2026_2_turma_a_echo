@@ -2,7 +2,7 @@
 name = "core-service"
 version = "0.1.0"
 description = "Servico principal do Sistema de Reservas de Rede Hoteleira"
-authors = ["Alpha Team"]
+authors = ["Equipe Echo"]
 readme = "README.md"
 package-mode = false
 
