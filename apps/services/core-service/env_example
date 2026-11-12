@@ -18,3 +18,6 @@ RABBITMQ_URL=
 # Autenticacao
 SECRET_KEY=
 ADMIN_PASSWORD=
+
+# CORS: origens do frontend, separadas por virgula
+CORS_ORIGINS=http://localhost:5173
