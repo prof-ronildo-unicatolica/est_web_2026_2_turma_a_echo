@@ -1,3 +1,4 @@
+import uuid
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -63,14 +64,16 @@ class DisciplinaCreateSchema(BaseModel):
     nome: str
     ano: int
     semestre: int
-    professor_id: Any = "bed023d2-c85c-4973-9c3d-79d77a5519f1"
+    # Obrigatorio: sem ele a disciplina era atribuida em silencio ao professor
+    # do seed.
+    professor_id: uuid.UUID
 
 
 class DisciplinaResponseSimpleSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: Any
+    id: uuid.UUID
     nome: str
     ano: int
     semestre: int
-    professor_id: Any
+    professor_id: uuid.UUID
