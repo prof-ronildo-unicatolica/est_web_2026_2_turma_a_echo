@@ -5,18 +5,9 @@ from sqlalchemy.orm import Session
 from app.models.hotel import Hotel
 from app.repositories.cidade_repository import CidadeRepository
 from app.repositories.hotel_repository import HotelRepository
+from app.services.excecoes import CidadeNaoEncontradaError, HotelNaoEncontradoError
 
-
-class RegraDeNegocioError(Exception):
-    """Base das excecoes de negocio deste modulo."""
-
-
-class HotelNaoEncontradoError(RegraDeNegocioError):
-    pass
-
-
-class CidadeNaoEncontradaError(RegraDeNegocioError):
-    pass
+__all__ = ["CidadeNaoEncontradaError", "HotelNaoEncontradoError", "HotelService"]
 
 
 class HotelService:
@@ -64,9 +55,7 @@ class HotelService:
         hotel = self.repository.get_by_id(hotel_id)
 
         if hotel is None:
-            raise HotelNaoEncontradoError(
-                f"Hotel com id '{hotel_id}' não encontrado."
-            )
+            raise HotelNaoEncontradoError(f"Hotel com id '{hotel_id}' não encontrado.")
 
         return hotel
 
