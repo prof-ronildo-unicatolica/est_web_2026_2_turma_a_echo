@@ -1,59 +1,54 @@
+from typing import Annotated
+
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import decode_access_token
+from app.models.usuario import Usuario
 from app.repositories.usuario_repository import UsuarioRepository
 
+bearer_scheme = HTTPBearer(description="Use o token retornado por POST /auth/login")
 
-bearer_scheme = HTTPBearer(
-    description="Use o token retornado por POST /auth/login"
-)
+CredenciaisDep = Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)]
+SessaoDep = Annotated[Session, Depends(get_db)]
 
 
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    db: Session = Depends(get_db),
-):
+def _nao_autorizado(detalhe: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=detalhe,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def get_current_user(credentials: CredenciaisDep, db: SessaoDep) -> Usuario:
     """Retorna o usuario autenticado a partir de um JWT valido."""
 
-    token = credentials.credentials
-
     try:
-        payload = decode_access_token(token)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token invalido ou expirado",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        payload = decode_access_token(credentials.credentials)
+    except jwt.InvalidTokenError as exc:
+        raise _nao_autorizado("Token invalido ou expirado") from exc
 
     email = payload.get("sub")
 
     if not email:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token invalido",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise _nao_autorizado("Token invalido")
 
-    repository = UsuarioRepository(db)
-    usuario = repository.get_by_email(email)
+    usuario = UsuarioRepository(db).get_by_email(email)
 
     if usuario is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario nao encontrado",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise _nao_autorizado("Usuario nao encontrado")
 
     return usuario
 
 
-def get_current_admin(
-    usuario=Depends(get_current_user),
-):
+UsuarioAtualDep = Annotated[Usuario, Depends(get_current_user)]
+
+
+def get_current_admin(usuario: UsuarioAtualDep) -> Usuario:
     """Permite acesso somente a usuarios administradores."""
 
     if not usuario.is_admin:
@@ -63,3 +58,6 @@ def get_current_admin(
         )
 
     return usuario
+
+
+AdminDep = Annotated[Usuario, Depends(get_current_admin)]

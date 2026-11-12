@@ -1,8 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, status
 
-from app.api.deps import get_current_admin, get_current_user
-from app.core.database import get_db
+from app.api.deps import AdminDep, SessaoDep, UsuarioAtualDep
 from app.schemas.usuario import (
     LoginRequest,
     RegisterRequest,
@@ -13,19 +11,20 @@ from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
+RESPOSTAS_AUTENTICADO = {
+    status.HTTP_401_UNAUTHORIZED: {"description": "Token inválido ou expirado"},
+    status.HTTP_403_FORBIDDEN: {"description": "Token ausente"},
+}
+
 
 @router.post(
     "/register",
     response_model=UsuarioPublic,
     status_code=status.HTTP_201_CREATED,
+    responses={status.HTTP_409_CONFLICT: {"description": "E-mail já cadastrado"}},
 )
-def register(
-    payload: RegisterRequest,
-    db: Session = Depends(get_db),
-):
-    auth_service = AuthService(db)
-
-    usuario = auth_service.register(
+def register(payload: RegisterRequest, db: SessaoDep):
+    usuario = AuthService(db).register(
         nome=payload.nome,
         email=payload.email,
         senha=payload.senha,
@@ -40,14 +39,15 @@ def register(
     return usuario
 
 
-@router.post("/login", response_model=Token)
-def login(
-    payload: LoginRequest,
-    db: Session = Depends(get_db),
-):
-    auth_service = AuthService(db)
-
-    access_token = auth_service.login(
+@router.post(
+    "/login",
+    response_model=Token,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"description": "E-mail ou senha incorretos"}
+    },
+)
+def login(payload: LoginRequest, db: SessaoDep):
+    access_token = AuthService(db).login(
         email=payload.email,
         senha=payload.senha,
     )
@@ -61,13 +61,21 @@ def login(
     return Token(access_token=access_token)
 
 
-@router.get("/me", response_model=UsuarioPublic)
-def get_me(usuario_atual = Depends(get_current_user)):
+@router.get("/me", response_model=UsuarioPublic, responses=RESPOSTAS_AUTENTICADO)
+def get_me(usuario_atual: UsuarioAtualDep):
     """Rota protegida: retorna o perfil do usuario autenticado."""
     return usuario_atual
 
 
-@router.get("/admin/verificacao")
-def somente_admin(admin = Depends(get_current_admin)):
+@router.get(
+    "/admin/verificacao",
+    responses={
+        **RESPOSTAS_AUTENTICADO,
+        status.HTTP_403_FORBIDDEN: {
+            "description": "Token ausente ou usuário sem perfil de administrador"
+        },
+    },
+)
+def somente_admin(admin: AdminDep):
     """Rota administrativa de exemplo."""
     return {"mensagem": f"Acesso administrativo concedido para {admin.nome}"}
