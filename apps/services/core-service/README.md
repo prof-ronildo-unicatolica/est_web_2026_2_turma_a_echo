@@ -13,7 +13,7 @@ Atualmente, o projeto inclui uma estrutura de tutorial acadêmico que demonstra 
 * **Versionamento de Banco**: Alembic (gerencia migrações e seeds).
 * **Banco de Dados NoSQL**: MongoDB (acessado assincronamente através da biblioteca Motor).
 * **Validação de Dados**: Pydantic e Pydantic Settings (carrega variáveis do `.env`).
-* **Segurança/Criptografia**: passlib com bcrypt (para criptografar senhas).
+* **Segurança/Criptografia**: bcrypt (hash de senhas) e PyJWT (tokens de acesso).
 
 ---
 
@@ -85,9 +85,34 @@ Duplique o arquivo de modelo `env_example` com o nome `.env`:
 
 Após iniciar o servidor, acesse a documentação interativa oficial do Swagger em **`http://localhost:8000/docs`**.
 
-* **`GET /`**: Rota raiz de boas-vindas.
-* **`GET /api/v1/health`**: Verifica a saúde do sistema e testa ativamente a conexão com o Postgres e MongoDB.
-* **`GET /api/v1/sobre`**: Retorna dados de equipes e relacionamentos complexos do banco (Professor, Disciplina, Stacks, Tecnologias e Linguagens).
+| Método | Rota | Acesso | O que faz |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/` | público | Boas-vindas |
+| `GET` | `/api/v1/health` | público | Testa PostgreSQL e MongoDB (503 se algum cair) |
+| `GET` | `/api/v1/sobre` | público | Equipe, professor, disciplinas e stacks |
+| `POST` | `/api/v1/auth/register` | público | Cadastra usuário comum |
+| `POST` | `/api/v1/auth/login` | público | Devolve o JWT |
+| `GET` | `/api/v1/auth/me` | autenticado | Perfil do usuário do token |
+| `POST` / `GET` | `/api/v1/cidades` | público | Cria e lista cidades |
+| `GET` | `/api/v1/hoteis?cidade_id=` | público | Lista hotéis com a cidade aninhada, com filtro opcional |
+| `GET` | `/api/v1/hoteis/{id}` | público | Busca um hotel |
+| `POST` / `PUT` / `DELETE` | `/api/v1/hoteis` | admin | Cria, altera e exclui hotéis |
+
+---
+
+## Testes e Lint
+
+Os testes usam SQLite em memória e duplos para MongoDB e RabbitMQ: não precisam de nenhum serviço de pé.
+As variáveis obrigatórias do `Settings` precisam existir (o `.env` local basta).
+
+```bash
+pytest -q               # suíte inteira
+pytest tests/test_hoteis_api.py -q   # só um arquivo
+ruff check .            # lint
+ruff format .           # formatação
+```
+
+O CI (`.github/workflows/ci.yml`) roda `ruff check` e `pytest` em todo PR para a `develop`.
 
 ---
 
