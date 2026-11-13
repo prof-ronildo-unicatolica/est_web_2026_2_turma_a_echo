@@ -9,8 +9,9 @@ COPY package.json package-lock.json ./
 # Instala as dependencias
 RUN npm ci --silent
 
-# Copia o restante do codigo e faz o build de producao
-COPY . .
+# Copia so o que o build precisa: COPY . . levaria .env, .git e afins para a imagem
+COPY index.html vite.config.js .eslintrc.cjs ./
+COPY src/ ./src/
 RUN npm run build
 
 # ─── Stage 2: Serve ──────────────────────────────────────────────────────────
