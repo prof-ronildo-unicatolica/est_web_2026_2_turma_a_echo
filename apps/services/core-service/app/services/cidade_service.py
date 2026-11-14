@@ -4,18 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.models.hotel import Cidade
 from app.repositories.cidade_repository import CidadeRepository
+from app.services.excecoes import CidadeJaExisteError, CidadeNaoEncontradaError
 
-
-class RegraDeNegocioError(Exception):
-    """Base das excecoes de negocio deste modulo."""
-
-
-class CidadeJaExisteError(RegraDeNegocioError):
-    pass
-
-
-class CidadeNaoEncontradaError(RegraDeNegocioError):
-    pass
+__all__ = ["CidadeJaExisteError", "CidadeNaoEncontradaError", "CidadeService"]
 
 
 class CidadeService:
@@ -26,9 +17,7 @@ class CidadeService:
         nome = nome.strip()
 
         if self.repository.get_by_nome(nome):
-            raise CidadeJaExisteError(
-                f"Ja existe uma cidade chamada '{nome}'."
-            )
+            raise CidadeJaExisteError(f"Ja existe uma cidade chamada '{nome}'.")
 
         return self.repository.create(nome=nome)
 
