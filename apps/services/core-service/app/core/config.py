@@ -8,6 +8,16 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Sistema de Reservas - Core Service"
     API_V1_STR: str = "/api/v1"
 
+    # Origens que o navegador pode usar para chamar a API, separadas por virgula.
+    # Com credenciais (allow_credentials) o CORS nao aceita "*".
+    CORS_ORIGINS: str = "http://localhost:5173"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [
+            origem.strip() for origem in self.CORS_ORIGINS.split(",") if origem.strip()
+        ]
+
     # Configuracoes de autenticacao JWT
     SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
