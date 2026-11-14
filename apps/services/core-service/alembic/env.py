@@ -6,8 +6,8 @@ from alembic import context
 
 # Importar modelos e configurações
 from app.core.config import settings
+from app.models import hotel  # noqa: F401  (registra Cidade e Hotel no metadata)
 from app.models.tutorial import Base
-from app.models import hotel
 from app.models.usuario import Usuario  # noqa: F401
 
 # Objeto de configuração do Alembic

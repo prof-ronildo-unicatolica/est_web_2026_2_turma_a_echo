@@ -33,11 +33,7 @@ def test_criar_cidade_no_repository(db_session):
     assert cidade.id is not None
     assert cidade.nome == "Crato"
 
-    cidade_salva = (
-        db_session.query(Cidade)
-        .filter(Cidade.id == cidade.id)
-        .first()
-    )
+    cidade_salva = db_session.query(Cidade).filter(Cidade.id == cidade.id).first()
 
     assert cidade_salva is not None
     assert cidade_salva.nome == "Crato"

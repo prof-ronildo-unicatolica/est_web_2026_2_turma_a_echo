@@ -5,11 +5,12 @@ Revises: 6602e651ea28
 Create Date: 2026-09-15 16:27:23.114809
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision: str = "b1170b2033c8"
 down_revision: Union[str, None] = "6602e651ea28"
