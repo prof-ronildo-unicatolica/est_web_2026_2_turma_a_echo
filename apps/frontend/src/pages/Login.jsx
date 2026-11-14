@@ -5,26 +5,26 @@ export default function Login() {
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
 
-async function handleSubmit(event) {
-  event.preventDefault()
+  async function handleSubmit(event) {
+    event.preventDefault()
 
-  try {
-    const data = await apiPost("/auth/login", {
-      email,
-      senha,
-    })
+    try {
+      const data = await apiPost("/auth/login", {
+        email,
+        senha,
+      })
 
-    const token = data.access_token || data.token
+      const token = data.access_token || data.token
 
-    localStorage.setItem("token", token)
-    const usuario = await apiGet("/auth/me")
-    console.log(usuario)
+      localStorage.setItem("token", token)
+      const usuario = await apiGet("/auth/me")
+      console.log(usuario)
 
-    alert("Login realizado com sucesso!")
-  } catch (error) {
-    alert(error.message)
+      alert("Login realizado com sucesso!")
+    } catch (error) {
+      alert(error.message)
+    }
   }
-}
 
   return (
     <div className="row justify-content-center">
@@ -33,9 +33,12 @@ async function handleSubmit(event) {
 
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label className="form-label">E-mail</label>
+            <label htmlFor="email" className="form-label">
+              E-mail
+            </label>
 
             <input
+              id="email"
               type="email"
               className="form-control"
               value={email}
@@ -45,9 +48,12 @@ async function handleSubmit(event) {
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Senha</label>
+            <label htmlFor="senha" className="form-label">
+              Senha
+            </label>
 
             <input
+              id="senha"
               type="password"
               className="form-control"
               value={senha}
