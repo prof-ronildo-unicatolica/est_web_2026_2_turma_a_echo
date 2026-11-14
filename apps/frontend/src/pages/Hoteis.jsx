@@ -1,3 +1,10 @@
+import HoteisRaw from "../components/HoteisRaw"
+
 export default function Hoteis() {
-  return <h1>Hotéis</h1>
+  return (
+    <div>
+      <h1 className="mb-4">Hotéis</h1>
+      <HoteisRaw />
+    </div>
+  )
 }
