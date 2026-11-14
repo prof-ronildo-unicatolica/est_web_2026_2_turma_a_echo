@@ -1,10 +1,10 @@
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom"
+import { BrowserRouter, Route, Routes } from "react-router-dom"
 
 import Home from "./pages/Home"
 import Hoteis from "./pages/Hoteis"
 import Reservas from "./pages/Reservas"
 import Login from "./pages/Login"
-import LogoutButton from "./components/LogoutButton"
+import Navbar from "./components/Navbar"
 
 import Admin from "./pages/Admin"
 import AdminRoute from "./components/AdminRoute"
@@ -14,38 +14,7 @@ import AdminHotelForm from "./pages/AdminHotelForm"
 function App() {
   return (
     <BrowserRouter>
-      <nav className="navbar navbar-expand-lg bg-dark navbar-dark">
-        <div className="container">
-          <Link className="navbar-brand" to="/">
-            Hotelaria
-          </Link>
-
-          <div className="navbar-nav">
-
-            <Link className="nav-link" to="/admin/hoteis/novo">
-              Novo Hotel
-            </Link>
-            
-            <Link className="nav-link" to="/">
-              Home
-            </Link>
-
-            <Link className="nav-link" to="/hoteis">
-              Hotéis
-            </Link>
-
-            <Link className="nav-link" to="/reservas">
-              Minhas Reservas
-            </Link>
-
-            <Link className="nav-link" to="/login">
-              Login
-            </Link>
-
-            <LogoutButton />
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="container mt-4">
         <Routes>
