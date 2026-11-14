@@ -1,54 +1,70 @@
 import asyncio
 import json
-from datetime import datetime
+import logging
+from datetime import datetime, timezone
+from functools import partial
+
 import aio_pika
-from motor.motor_asyncio import AsyncIOMotorClient
+from aio_pika.abc import AbstractIncomingMessage
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
+
 from app.core.config import settings
 
-async def process_message(message: aio_pika.IncomingMessage):
+FILA_AUDITORIA = "audit.logs"
+
+logger = logging.getLogger(__name__)
+
+
+async def registrar_evento(collection: AsyncIOMotorCollection, corpo: bytes) -> dict:
+    """Converte a mensagem da fila em documento de auditoria e grava no Mongo."""
+    dados = json.loads(corpo.decode("utf-8"))
+    documento = {**dados, "timestamp": datetime.now(timezone.utc).isoformat()}
+    await collection.insert_one(documento)
+    return documento
+
+
+async def process_message(
+    collection: AsyncIOMotorCollection,
+    message: AbstractIncomingMessage,
+) -> None:
     async with message.process():
         try:
-            # Carrega os dados da mensagem
-            data = json.loads(message.body.decode("utf-8"))
-            print(f"[Worker] Mensagem recebida: {data}")
+            documento = await registrar_evento(collection, message.body)
+            logger.info("Evento de auditoria registrado: %s", documento.get("evento"))
+        except Exception:
+            # A mensagem e confirmada mesmo assim (message.process): um corpo
+            # invalido reprocessado para sempre travaria a fila.
+            logger.exception("Erro ao processar mensagem de auditoria")
 
-            # Conecta ao MongoDB
-            mongo_client = AsyncIOMotorClient(settings.MONGODB_URL)
-            db = mongo_client[settings.MONGODB_DB]
-            collection = db["logs_auditoria"]
 
-            # Adiciona timestamp e salva no MongoDB
-            log_document = {
-                **data,
-                "timestamp": datetime.utcnow().isoformat()
-            }
-            await collection.insert_one(log_document)
-            print(f"[Worker] Log registrado com sucesso no MongoDB!")
+async def main() -> None:
+    # Um cliente por processo: o Motor mantem um pool de conexoes, e abrir um
+    # cliente novo a cada mensagem criava um pool novo por evento.
+    mongo_client = AsyncIOMotorClient(settings.MONGODB_URL)
+    collection = mongo_client[settings.MONGODB_DB]["logs_auditoria"]
 
-        except Exception as e:
-            print(f"[Worker] Erro ao processar mensagem: {str(e)}")
-
-async def main():
-    print(f"[Worker] Conectando ao RabbitMQ: {settings.RABBITMQ_URL}")
+    # Nunca registrar settings.RABBITMQ_URL: ela carrega usuario e senha.
+    logger.info("Conectando ao RabbitMQ")
     connection = await aio_pika.connect_robust(settings.RABBITMQ_URL)
-    
+
     async with connection:
         channel = await connection.channel()
-        
+
         # Define prefetch count para balancear carga
         await channel.set_qos(prefetch_count=10)
-        
-        # Declara a fila de auditoria
-        queue = await channel.declare_queue("audit.logs", durable=True)
-        
-        print("[Worker] Aguardando mensagens na fila 'audit.logs'...")
-        await queue.consume(process_message)
-        
-        # Mantem o loop rodando indefinitivamente
+
+        queue = await channel.declare_queue(FILA_AUDITORIA, durable=True)
+
+        logger.info("Aguardando mensagens na fila '%s'", FILA_AUDITORIA)
+        await queue.consume(partial(process_message, collection))
+
+        # Mantem o loop rodando indefinidamente
         await asyncio.Future()
 
+
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="[Worker] %(message)s")
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("[Worker] Parado pelo usuario.")
+        logger.info("Parado pelo usuario.")
