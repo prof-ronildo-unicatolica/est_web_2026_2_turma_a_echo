@@ -1,90 +1,91 @@
+import logging
+
+from sqlalchemy.orm import Session
+
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.security import hash_password
-from app.repositories.usuario_repository import UsuarioRepository
 from app.models.hotel import Cidade, Hotel
+from app.repositories.usuario_repository import UsuarioRepository
+
+logger = logging.getLogger(__name__)
+
+# Cidade -> [(hotel, estrelas)]. O seed garante que cada par exista, sem
+# duplicar o que ja estiver no banco.
+CIDADES_E_HOTEIS: dict[str, list[tuple[str, int]]] = {
+    "Fortaleza": [("Hotel Resort", 1), ("Hotel Aquiraz", 2)],
+    "Quixadá": [("Hotel Beira Mar", 3), ("Hotel Paraíso", 4)],
+    "Juazeiro do Norte": [("Hotel Premium", 5)],
+}
 
 
-def seed_admin_user() -> None:
-    db = SessionLocal()
+def seed_admin_user(db: Session) -> bool:
+    """Cria o administrador inicial. Devolve True se criou."""
+    repository = UsuarioRepository(db)
+
+    if repository.get_by_email(settings.ADMIN_EMAIL) is not None:
+        logger.info("Usuario administrador ja existe.")
+        return False
+
+    repository.create(
+        nome=settings.ADMIN_NAME,
+        email=settings.ADMIN_EMAIL,
+        senha_hash=hash_password(settings.ADMIN_PASSWORD),
+        is_admin=True,
+    )
+    logger.info("Usuario administrador criado com sucesso.")
+    return True
+
+
+def seed_cidades_e_hoteis(db: Session) -> int:
+    """Garante as cidades e hoteis de exemplo. Devolve quantos hoteis criou.
+
+    Idempotente por nome: rodar de novo nao duplica, e uma cidade cadastrada
+    antes do seed nao impede que os hoteis dela sejam criados.
+    """
+    criados = 0
 
     try:
-        repository = UsuarioRepository(db)
+        for nome_cidade, hoteis in CIDADES_E_HOTEIS.items():
+            cidade = db.query(Cidade).filter(Cidade.nome == nome_cidade).first()
 
-        usuario = repository.get_by_email(settings.ADMIN_EMAIL)
+            if cidade is None:
+                cidade = Cidade(nome=nome_cidade)
+                db.add(cidade)
+                db.flush()
 
-        if usuario is not None:
-            print("Usuario administrador ja existe.")
-            return
+            for nome_hotel, estrelas in hoteis:
+                existe = (
+                    db.query(Hotel.id)
+                    .filter(Hotel.nome == nome_hotel, Hotel.cidade_id == cidade.id)
+                    .first()
+                )
 
-        repository.create(
-            nome=settings.ADMIN_NAME,
-            email=settings.ADMIN_EMAIL,
-            senha_hash=hash_password(settings.ADMIN_PASSWORD),
-            is_admin=True,
-        )
+                if existe is None:
+                    db.add(
+                        Hotel(nome=nome_hotel, cidade_id=cidade.id, estrelas=estrelas)
+                    )
+                    criados += 1
 
-        print("Usuario administrador criado com sucesso.")
-
-    finally:
-        db.close()
-
-def seed_cidades_e_hoteis() -> None:
-    db = SessionLocal()
-
-    try:
-        if db.query(Cidade).count() > 0:
-            print("Cidades e hoteis já existem.")
-            return
-
-        cidade1 = Cidade(nome="Fortaleza")
-        cidade2 = Cidade(nome="Quixadá")
-        cidade3 = Cidade(nome="Juazeiro do Norte")
-
-        db.add_all([cidade1, cidade2, cidade3])
-        db.flush()
-
-        hoteis = [
-            Hotel(
-                nome="Hotel Resort",
-                cidade_id=cidade1.id,
-                estrelas=1,
-            ),
-            Hotel(
-                nome="Hotel Aquiraz",
-                cidade_id=cidade1.id,
-                estrelas=2,
-            ),
-            Hotel(
-                nome="Hotel Beira Mar",
-                cidade_id=cidade2.id,
-                estrelas=3,
-            ),
-            Hotel(
-                nome="Hotel Paraíso",
-                cidade_id=cidade2.id,
-                estrelas=4,
-            ),
-            Hotel(
-                nome="Hotel Premium",
-                cidade_id=cidade3.id,
-                estrelas=5,
-            ),
-        ]
-
-        db.add_all(hoteis)
         db.commit()
-
-        print("Cidades e hoteis criados com sucesso.")
-
     except Exception:
         db.rollback()
         raise
 
+    logger.info("Seed de cidades e hoteis: %d hotel(is) criado(s).", criados)
+    return criados
+
+
+def main() -> None:
+    db = SessionLocal()
+
+    try:
+        seed_admin_user(db)
+        seed_cidades_e_hoteis(db)
     finally:
         db.close()
 
 
 if __name__ == "__main__":
-    seed_admin_user()
-    seed_cidades_e_hoteis()
+    logging.basicConfig(level=logging.INFO, format="[seed_postgres] %(message)s")
+    main()
