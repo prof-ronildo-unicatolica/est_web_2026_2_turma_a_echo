@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
@@ -6,38 +9,51 @@ from sqlalchemy.sql import text
 from app.core.database import get_db, get_mongo_db
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+SAUDAVEL = "healthy"
+INDISPONIVEL = "unhealthy"
 
 
-@router.get("/health")
+@router.get(
+    "/health",
+    responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "PostgreSQL ou MongoDB indisponível"
+        }
+    },
+)
 async def health_check(
-    db: Session = Depends(get_db),
-    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    db: Annotated[Session, Depends(get_db)],
+    mongo_db: Annotated[AsyncIOMotorDatabase, Depends(get_mongo_db)],
 ):
-    postgres_status = "unhealthy"
-    mongo_status = "unhealthy"
+    postgres_status = INDISPONIVEL
+    mongo_status = INDISPONIVEL
 
-    # Testar PostgreSQL
+    # A mensagem da excecao vai para o log, nunca para a resposta: a rota e
+    # publica e o erro do driver pode trazer host, porta e usuario do banco.
     try:
         db.execute(text("SELECT 1"))
-        postgres_status = "healthy"
-    except Exception as e:
-        postgres_status = f"error: {str(e)}"
+        postgres_status = SAUDAVEL
+    except Exception:
+        logger.exception("Health check: PostgreSQL indisponivel")
 
-    # Testar MongoDB
     try:
         await mongo_db.command("ping")
-        mongo_status = "healthy"
-    except Exception as e:
-        mongo_status = f"error: {str(e)}"
+        mongo_status = SAUDAVEL
+    except Exception:
+        logger.exception("Health check: MongoDB indisponivel")
 
-    if postgres_status != "healthy" or mongo_status != "healthy":
+    corpo = {
+        "status": SAUDAVEL,
+        "postgres": postgres_status,
+        "mongodb": mongo_status,
+    }
+
+    if INDISPONIVEL in (postgres_status, mongo_status):
         raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "unhealthy",
-                "postgres": postgres_status,
-                "mongodb": mongo_status,
-            },
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={**corpo, "status": INDISPONIVEL},
         )
 
-    return {"status": "healthy", "postgres": postgres_status, "mongodb": mongo_status}
+    return corpo
