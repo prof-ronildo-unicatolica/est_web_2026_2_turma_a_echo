@@ -1,49 +1,60 @@
+import uuid
+from typing import Any
+
 from sqlalchemy.orm import Session
 
 from app.core.rabbitmq import publish_event
+from app.models.tutorial import Disciplina, Professor
 from app.repositories.tutorial_repository import TutorialRepository
+
+
+def _normalizar_texto(valor: str | None) -> str:
+    if valor is None:
+        return ""
+    return valor.strip()
 
 
 class TutorialService:
     def __init__(self, db: Session):
         self.repository = TutorialRepository(db)
 
-    def get_sobre_data(self) -> dict:
-        professores = self.repository.get_professor_with_details()
-        stacks = self.repository.get_stacks_with_tecnologias()
-
-        equipe_info = {
-            "equipe": "Echo",
-            "ano": 2026,
-            "semestre": 2,
-            "professor": None,
-            "disciplinas": [],
-            "stacks": [],
+    def _serializar_professor(self, prof: Professor) -> dict[str, Any]:
+        detalhe = prof.detalhe
+        biografia_mapa = (
+            detalhe.biografia_mapa
+            if (detalhe is not None and detalhe.biografia_mapa)
+            else None
+        )
+        return {
+            "nome": prof.nome,
+            "email": prof.email,
+            "sala": detalhe.sala if detalhe is not None else "",
+            "biografia": (
+                detalhe.biografia
+                if (detalhe is not None and detalhe.biografia is not None)
+                else ""
+            ),
+            "biografia_mapa": biografia_mapa,
         }
 
-        if professores:
-            prof = professores[0]
-            equipe_info["professor"] = {
-                "nome": prof.nome,
-                "email": prof.email,
-                "sala": prof.detalhe.sala if prof.detalhe else "",
-                "biografia": prof.detalhe.biografia if prof.detalhe else "",
-                "biografia_mapa": prof.detalhe.biografia_mapa
-                if (prof.detalhe and prof.detalhe.biografia_mapa)
-                else None,
-            }
-            for disc in prof.disciplinas:
-                equipe_info["disciplinas"].append(
-                    {
-                        "nome": disc.nome,
-                        "ano": disc.ano,
-                        "semestre": disc.semestre,
-                        "tecnologias": [t.nome for t in disc.tecnologias],
-                    }
-                )
+    def _serializar_disciplinas(self, prof: Professor) -> list[dict[str, Any]]:
+        resultado: list[dict[str, Any]] = []
+        for disc in prof.disciplinas:
+            resultado.append(
+                {
+                    "nome": disc.nome,
+                    "ano": disc.ano,
+                    "semestre": disc.semestre,
+                    "tecnologias": [t.nome for t in disc.tecnologias],
+                }
+            )
+        return resultado
 
+    def list_stacks_resumo(self) -> list[dict[str, Any]]:
+        stacks = self.repository.get_stacks_with_tecnologias()
+        resultado: list[dict[str, Any]] = []
         for st in stacks:
-            stack_data = {"nome": st.nome, "tecnologias": []}
+            stack_data: dict[str, Any] = {"nome": st.nome, "tecnologias": []}
             for tech in st.tecnologias:
                 stack_data["tecnologias"].append(
                     {
@@ -51,31 +62,73 @@ class TutorialService:
                         "linguagens": [lang.nome for lang in tech.linguagens],
                     }
                 )
-            equipe_info["stacks"].append(stack_data)
+            resultado.append(stack_data)
+        return resultado
+
+    def get_sobre_data(self) -> dict[str, Any]:
+        professores = self.repository.get_professor_with_details()
+
+        equipe_info: dict[str, Any] = {
+            "equipe": "Echo",
+            "ano": 2026,
+            "semestre": 2,
+            "professor": None,
+            "disciplinas": [],
+            "stacks": self.list_stacks_resumo(),
+        }
+
+        if professores:
+            prof = professores[0]
+            equipe_info["professor"] = self._serializar_professor(prof)
+            equipe_info["disciplinas"] = self._serializar_disciplinas(prof)
 
         return equipe_info
 
-    def get_professor_by_id(self, professor_id):
-        return self.repository.get_professor_by_id(professor_id)
+    def get_professor_by_id(
+        self, professor_id: uuid.UUID | str
+    ) -> dict[str, Any] | None:
+        if isinstance(professor_id, str):
+            try:
+                professor_id = uuid.UUID(professor_id)
+            except ValueError:
+                return None
 
-    def create_professor(self, payload):
-        return self.repository.create_professor(
-            nome=payload.nome,
-            email=payload.email,
-            sala=payload.sala,
-            biografia=payload.biografia,
-            biografia_mapa=payload.biografia_mapa,
+        prof = self.repository.get_professor_by_id(professor_id)
+        if prof is None:
+            return None
+
+        return self._serializar_professor(prof)
+
+    def create_professor(self, payload: Any) -> dict[str, Any]:
+        nome = _normalizar_texto(payload.nome)
+        email = _normalizar_texto(payload.email)
+        sala = _normalizar_texto(payload.sala)
+        if not nome or not email or not sala:
+            raise ValueError("Nome, email e sala do professor sao obrigatorios.")
+
+        biografia = getattr(payload, "biografia", None)
+        biografia_mapa = getattr(payload, "biografia_mapa", None)
+        prof = self.repository.create_professor(
+            nome=nome,
+            email=email,
+            sala=sala,
+            biografia=biografia,
+            biografia_mapa=biografia_mapa,
         )
+        return self._serializar_professor(prof)
 
-    async def create_disciplina(self, payload):
+    async def create_disciplina(self, payload: Any) -> Disciplina:
+        nome = _normalizar_texto(payload.nome)
+        if not nome:
+            raise ValueError("O nome da disciplina nao pode ser vazio.")
+
         disciplina = self.repository.create_disciplina(
-            nome=payload.nome,
+            nome=nome,
             ano=payload.ano,
             semestre=payload.semestre,
             professor_id=payload.professor_id,
         )
 
-        # Dispara evento assincronamente para o RabbitMQ
         event_data = {
             "evento": "disciplina.criada",
             "disciplina_id": str(disciplina.id),
