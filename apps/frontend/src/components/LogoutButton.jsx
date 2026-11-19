@@ -1,11 +1,15 @@
-export default function LogoutButton() {
-  function handleLogout() {
-    localStorage.removeItem("token")
-    window.location.href = "/login"
-  }
+function handleLogout() {
+  localStorage.removeItem("token")
+  window.location.href = "/login"
+}
 
+export default function LogoutButton() {
   return (
-    <button className="btn btn-outline-danger" onClick={handleLogout}>
+    <button
+      type="button"
+      className="btn btn-outline-danger"
+      onClick={handleLogout}
+    >
       Sair
     </button>
   )
